@@ -1,0 +1,21 @@
+[general]
+name=GeoFixer
+qgisMinimumVersion=3.16
+qgisMaximumVersion=4.99
+description=Corrige ou définit la géométrie d'entités vectorielles depuis des champs de coordonnées (lon/lat, WKT) ou par reprojection. Gère aussi la définition du SCR sur les couches sans système de coordonnées, y compris les CSV.
+version=1.3.8
+author=GeoFixer Plugin
+email=contact@example.com
+
+about=GeoFixer permet de corriger les entités sans géométrie ou mal projetées dans une couche vectorielle QGIS. L'étape 1 présente un aperçu cartographique de la couche avec son emprise et celle du SCR, et permet de définir ou modifier le SCR. L'étape 2 liste les entités problématiques (sans géométrie ou hors emprise SCR) et offre deux modes de correction : reprojection vers un SCR cible, ou reconstruction de la géométrie depuis des champs attributaires (Longitude/Latitude ou WKT).
+
+tracker=https://github.com/carto-sim/geo-fixer/issues
+repository=https://github.com/carto-sim/geo-fixer
+
+hasProcessingProvider=no
+tags=vector,geometry,crs,projection,coordinates,csv,fix,repair
+homepage=https://github.com/carto-sim/geo-fixer
+category=Vector
+icon=icon.png
+experimental=False
+deprecated=False

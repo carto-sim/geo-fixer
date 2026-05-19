@@ -1,0 +1,465 @@
+====================================================================
+PLUGIN QGIS - GEOFIXER  |  Referentiel de fonctionnalites
+====================================================================
+Derniere mise a jour : 2026-03-19  |  Version : 1.4.0
+====================================================================
+
+LEGENDE :
+  [OK]  = Implemente ET confirme operationnel par l utilisateur
+  [KO]  = Signale non operationnel - a corriger
+  [N/A] = Implemente, non encore teste par l utilisateur
+
+FORMAT DE CHAQUE ENTREE :
+  [ST] X.Y  Description courte
+             Impl  : fichier :: methode() -> detail technique
+             Verif : commande grep a lancer pour confirmer la presence
+
+IMPORTANT POUR LES REFACTORISATIONS :
+  Avant toute reecriture de fichier, verifier chaque ligne "Verif"
+  sur le CODE EXISTANT, puis sur le CODE PRODUIT avant de livrer.
+  Ne jamais se fier a la memoire — toujours grep.
+
+====================================================================
+BLOC 1 - INTERFACE GENERALE
+  Fichiers : geo_fixer_dialog.py, geo_fixer_plugin.py
+====================================================================
+
+[OK]  1.1  Fenetre non-modale independante de QGIS
+           Impl  : geo_fixer_dialog.py :: __init__()
+                   -> self.setWindowFlags(...| _Qt_Window)
+                   -> parent=None dans geo_fixer_plugin.py
+           Verif : grep "_Qt_Window" geo_fixer_dialog.py
+           Verif : grep "parent=None" geo_fixer_plugin.py
+
+[OK]  1.2  Barre d etapes visuelle (vert = active, gris = inactive)
+           Impl  : geo_fixer_dialog.py :: _build_step_bar()
+                                       :: _update_step_bar()
+           Verif : grep "_build_step_bar\|_update_step_bar" geo_fixer_dialog.py
+
+[OK]  1.3  Bouton Retour : retour etape 1 avec rafraichissement canvas
+           Impl  : geo_fixer_dialog.py :: _go_to_step1()
+                   -> QTimer.singleShot(80, self._refresh_map_preview)
+           Verif : grep "_go_to_step1" geo_fixer_dialog.py
+
+[OK]  1.4  Icone + entree menu Vector dans QGIS
+           Impl  : geo_fixer_plugin.py :: initGui() / unload()
+           Verif : grep "initGui\|addPluginToVectorMenu" geo_fixer_plugin.py
+
+====================================================================
+BLOC 2 - SELECTION DE LA SOURCE DE DONNEES (Etape 1)
+  Fichiers : geo_fixer_dialog.py
+====================================================================
+
+[OK]  2.1  Combobox vide a l ouverture (layers deja charges dans QGIS)
+           Impl  : geo_fixer_dialog.py :: _build_step1()
+                   -> blockSignals(True) + setLayer(None) + blockSignals(False)
+           Verif : grep "blockSignals" geo_fixer_dialog.py
+
+[OK]  2.2  Ouverture d un fichier vectoriel externe via QFileDialog
+           Formats : .shp .gpkg .geojson .json .kml .kmz .gml .gdb
+                     .csv .tsv .tab .mif .mid .gpx .dxf .dwg
+                     .sqlite .db .gz .zip
+           Impl  : geo_fixer_dialog.py :: _on_open_file()
+                                       :: _FILE_FILTER (constante)
+           Verif : grep "_FILE_FILTER" geo_fixer_dialog.py
+           Verif : grep "_on_open_file" geo_fixer_dialog.py
+
+[OK]  2.3  Label des formats supportes sous le groupe Source de donnees
+           Impl  : geo_fixer_dialog.py :: _build_step1()
+                   -> QLabel("Formats : Shapefile · GeoPackage ...")
+           Verif : grep "Formats.*Shapefile" geo_fixer_dialog.py
+
+[OK]  2.4  Fichiers multi-couches : boite de dialogue de selection
+           Formats : .gpkg .gdb .kml .kmz .dwg .dxf .gml .gpx .sqlite .db .gz .zip
+           Impl  : geo_fixer_dialog.py :: _on_open_file()
+                                       :: _ask_layer_choice()
+                                       :: _MULTILAYER_EXTS (frozenset)
+           Verif : grep "_ask_layer_choice\|_MULTILAYER_EXTS" geo_fixer_dialog.py
+
+[OK]  2.5  CSV : detection automatique du delimiter par analyse de l en-tete
+           Priorite a l en-tete (evite les faux positifs avec texte libre).
+           Candidats : ; \t , | :
+           Repli sur virgule si echec.
+           Impl  : geo_fixer_dialog.py :: _detect_csv_delimiter()
+                   -> analyse header_line en priorite sur les data_lines
+           Verif : grep "_detect_csv_delimiter" geo_fixer_dialog.py
+           Verif : grep "header_line\|_CANDIDATES" geo_fixer_dialog.py
+
+[OK]  2.6  Couche sans geometrie : ouverture automatique FieldConfigDialog
+           Ouverture differee 120 ms apres selection (canvas rendu d abord).
+           Impl  : geo_fixer_dialog.py :: _on_layer_changed()
+                   -> QTimer.singleShot(120, _open_field_config_if_needed)
+                 :: _open_field_config_if_needed()
+           Verif : grep "_open_field_config_if_needed" geo_fixer_dialog.py
+           Verif : grep "singleShot(120" geo_fixer_dialog.py
+
+====================================================================
+BLOC 3 - APERCU CARTOGRAPHIQUE (Etape 1)
+  Fichiers : geo_fixer_dialog.py, core/utils.py
+====================================================================
+
+[OK]  3.1  Canvas QgsMapCanvas avec fond monde + emprise SCR + emprise couche
+           Fond gris (world_map.gpkg), SCR rouge, couche violet.
+           Refresh difere 80 ms (evite rendu dans 0x0).
+           Impl  : geo_fixer_dialog.py :: _refresh_map_preview()
+                 : core/utils.py :: get_world_layer()
+                                 :: make_map_canvas()
+           Verif : grep "_refresh_map_preview" geo_fixer_dialog.py
+           Verif : grep "get_world_layer\|make_map_canvas" geo_fixer_dialog.py
+           Verif : grep "singleShot(80" geo_fixer_dialog.py
+
+[OK]  3.2  Emprise couche interpretee dans le SCR selectionne (pas le SCR declare)
+           Permet de verifier la coherence SCR/donnees visuellement.
+           Impl  : geo_fixer_dialog.py :: _refresh_map_preview()
+                   -> QgsCoordinateTransform(crs_display, crs_wgs84)
+           Verif : grep "crs_display.*crs_wgs84\|transformBoundingBox" geo_fixer_dialog.py
+
+[OK]  3.3  Cache emprise pour Shapefile avec geometries NULL
+           Quand le SHP cree a des geometries NULL, l emprise calculee depuis
+           les champs pendant la configuration est utilisee comme repli.
+           Impl  : geo_fixer_dialog.py :: _cached_data_extent_wgs (attribut)
+                   -> rempli dans _export_to_shapefile() via get_data_extent_wgs84()
+                   -> utilise dans _refresh_map_preview()
+           Verif : grep "_cached_data_extent_wgs" geo_fixer_dialog.py
+           Verif : grep "get_data_extent_wgs84" geo_fixer_dialog.py
+
+[OK]  3.4  Comptage entites sans geometrie (echantillon 50 000)
+           Message conditionnel :
+             - SHP frais cree -> message informatif neutre
+             - Autres couches -> avertissement standard
+           Impl  : geo_fixer_dialog.py :: _refresh_map_preview()
+                   -> boucle getFeatures(), compteur n_no_geom
+                   -> if self._cached_data_extent_wgs is not None -> neutre
+           Verif : grep "n_no_geom" geo_fixer_dialog.py
+
+====================================================================
+BLOC 4 - GESTION DU SCR (Etape 1)
+  Fichiers : geo_fixer_dialog.py, core/utils.py
+====================================================================
+
+[OK]  4.1  Selecteur SCR via QgsProjectionSelectionWidget
+           Initialise au SCR courant de la couche si disponible, sinon EPSG:4326.
+           Impl  : geo_fixer_dialog.py :: _build_step1()
+                 : core/utils.py :: make_crs_selector()
+           Verif : grep "make_crs_selector" geo_fixer_dialog.py core/utils.py
+
+[OK]  4.2  Bouton Appliquer le SCR : declaration sans reprojection
+           Desactive si emprise couche depasse les bounds du SCR (contains()).
+           Impl  : geo_fixer_dialog.py :: _on_apply_crs()
+                                       :: _refresh_map_preview()
+                   -> crs_bounds.contains(data_extent_wgs)
+           Verif : grep "_on_apply_crs" geo_fixer_dialog.py
+           Verif : grep "crs_bounds.contains" geo_fixer_dialog.py
+
+====================================================================
+BLOC 5 - CONFIGURATION DES CHAMPS ET EXPORT SHAPEFILE
+          Fichier : field_config_dialog.py
+====================================================================
+
+[OK]  5.1  Onglet "Types de champs" : tableau avec comboboxes de type
+           Ligne 0 fond bleu = comboboxes, lignes suivantes = echantillon 10 entites.
+           Detection auto du type (100 entites, seuil 80 %).
+           Types compatibles uniquement (Integer->Int/Real/String, etc.).
+           Molette desactivee sur les comboboxes.
+           Impl  : field_config_dialog.py :: _build_types_tab()
+                                          :: _detect_types()
+                                          :: _load_sample()
+                                          :: _NoWheelCombo (core/utils.py)
+           Verif : grep "_build_types_tab\|_detect_types\|_load_sample" field_config_dialog.py
+           Verif : grep "_COMPATIBLE_TYPES\|THRESHOLD" field_config_dialog.py
+
+[OK]  5.2  Onglet "SCR et apercu" : mode geometrique + previsualisation
+           Modes : Aucune geometrie / Lon/Lat -> Point / Champ WKT.
+           Comboboxes lon/lat (champs numeriques), WKT (champs avec >= 2 valeurs WKT).
+           Pre-selection automatique lon/lat par nom de champ.
+           Impl  : field_config_dialog.py :: _build_geom_tab()
+                                          :: _build_lonlat_widget()
+                                          :: _build_wkt_widget()
+                                          :: _build_crs_widget()
+           Verif : grep "_build_geom_tab\|_build_lonlat_widget\|_build_wkt_widget" field_config_dialog.py
+           Verif : grep "_has_wkt_values\|_numeric_fields\|_wkt_fields" field_config_dialog.py
+
+[OK]  5.3  Previsualisation cartographique dans FieldConfigDialog
+           Canvas monde/SCR/donnees, zoom union, refresh 80 ms.
+           Bouton OK bloque si non previsualise OU emprise hors bounds SCR.
+           Invalidation si SCR ou mode change.
+           Impl  : field_config_dialog.py :: _run_preview()
+                                          :: _update_ok_button()
+                                          :: _on_crs_changed()
+                   -> _crs_is_valid : None / True / False
+           Verif : grep "_run_preview\|_crs_is_valid\|_update_ok_button" field_config_dialog.py
+           Verif : grep "_on_crs_changed" field_config_dialog.py
+
+[OK]  5.4  Tableau echantillon filtre selon le mode actif
+           Colonnes : numeriques (lon/lat) ou WKT selon radio selectionne.
+           Impl  : field_config_dialog.py :: _refresh_geom_sample()
+           Verif : grep "_refresh_geom_sample\|_geom_sample_table" field_config_dialog.py
+
+[OK]  5.5  Export Shapefile obligatoire pour couches sans geometrie
+           Verrou multi-fichiers (.shp .dbf .shx .prj .cpg).
+           Selecteur s ouvre dans le repertoire du fichier source.
+           Nom de couche nettoye (suffixes [SHP] etc. retires).
+           Geometries construites des la creation (pas de NULL).
+           Shapefile charge dans le projet et selectionne dans la combobox.
+           Impl  : geo_fixer_dialog.py :: _export_to_shapefile()
+                   -> verrou : open(candidate, "r+b") pour chaque ext
+                   -> geometries depuis _lon_field / _lat_field / _wkt_field
+                   -> QgsVectorFileWriter.writeAsVectorFormatV3()
+           Verif : grep "_export_to_shapefile" geo_fixer_dialog.py
+           Verif : grep "r+b.*PermissionError\|\.dbf.*\.shx" geo_fixer_dialog.py
+           Verif : grep "_lon_field\|_lat_field\|_wkt_field" geo_fixer_dialog.py
+           Verif : grep "writeAsVectorFormatV3" geo_fixer_dialog.py
+
+[OK]  5.6  Type geometrique dynamique selon le mode (Point / WKT detecte)
+           Impl  : geo_fixer_dialog.py :: _export_to_shapefile()
+                   -> geom_mode == 2 : scan 20 valeurs WKT -> _detected_wkb_type
+                   -> _WKT_TYPE_MAP : POINT->Point, POLYGON->Polygon, etc.
+           Verif : grep "_WKT_TYPE_MAP\|mem_geom_type" geo_fixer_dialog.py
+           Verif : grep "_detected_wkb_type" geo_fixer_dialog.py
+
+====================================================================
+BLOC 6 - IDENTIFICATION DES ENTITES PROBLEMATIQUES (Etape 2)
+  Fichiers : geo_fixer_dialog.py, core/layer_inspector.py
+====================================================================
+
+[OK]  6.1  Detection entites sans geometrie (nulle ou vide)
+           Impl  : core/layer_inspector.py :: find_problematic_features()
+                   -> geom.isNull() or geom.isEmpty()
+           Verif : grep "isNull.*isEmpty\|isNull\|isEmpty" core/layer_inspector.py
+
+[OK]  6.2  Detection entites hors emprise SCR
+           Algorithme : bounds WGS84 -> transform vers SCR natif (1 seule
+           transformation de rectangle vs N geometries individuelles).
+           Impl  : core/layer_inspector.py :: find_problematic_features()
+                   -> QgsCoordinateTransform(crs_wgs84, layer_crs)
+                   -> ref_rect.intersects(feat_bbox)
+           Verif : grep "ref_rect\|intersects" core/layer_inspector.py
+           Verif : grep "QgsCoordinateTransform" core/layer_inspector.py
+
+[OK]  6.3  Detection types de champs par valeurs reelles (100 entites, seuil 50 %)
+           WKT : >= WKT_MIN_HITS valeurs parsant comme geometrie QGIS.
+           Repli sur tous les champs si aucun champ du bon type detecte.
+           Impl  : core/layer_inspector.py :: detect_field_types_by_values()
+                   -> NUMERIC_THRESHOLD = 0.5
+                   -> WKT_MIN_HITS = 2
+           Verif : grep "NUMERIC_THRESHOLD\|WKT_MIN_HITS" core/layer_inspector.py
+           Verif : grep "detect_field_types_by_values" core/layer_inspector.py
+
+[OK]  6.4  Filtre : entites problematiques / toutes les entites
+           Impl  : geo_fixer_dialog.py :: _on_filter_changed()
+                                       :: _populate_entity_table()
+           Verif : grep "_on_filter_changed" geo_fixer_dialog.py
+
+[OK]  6.5  Tableau : colonnes FID + champs utiles + Raison
+           Coloration : rouge=sans geom, jaune=hors SCR, vert=valide.
+           Tri par clic en-tete (FID stocke comme int -> tri numerique).
+           Impl  : geo_fixer_dialog.py :: _populate_entity_table()
+                   -> FID stocke dans _Qt_UserRole comme int
+           Verif : grep "_populate_entity_table\|_Qt_UserRole" geo_fixer_dialog.py
+           Verif : grep "UserRole.*int\|setData.*_Qt_UserRole" geo_fixer_dialog.py
+
+[OK]  6.6  Multi-selection (Ctrl+clic, Maj+clic, Ctrl+A)
+           Boutons Tout selectionner / Deselectionner.
+           Compteur "X listee(s) — Y selectionnee(s)".
+           Impl  : geo_fixer_dialog.py :: _build_step2()
+                   -> _QTable_ExtendedSelection + _QTable_SelectRows
+                 :: _on_selection_changed()
+                 :: _update_entity_count()
+           Verif : grep "_QTable_ExtendedSelection\|_QTable_SelectRows" geo_fixer_dialog.py
+           Verif : grep "_update_entity_count\|_on_selection_changed" geo_fixer_dialog.py
+
+====================================================================
+BLOC 7 - ACTIONS DE CORRECTION (Etape 2)
+  Fichiers : geo_fixer_dialog.py, core/geometry_fixer.py
+====================================================================
+
+[OK]  7.1  Mode Reprojeter : SCR d origine -> SCR courant de la couche
+           startEditing / transform / changeGeometry / commitChanges.
+           updateExtents() apres pour rafraichir l emprise.
+           Impl  : geo_fixer_dialog.py :: _apply_reproject()
+                 : core/geometry_fixer.py :: reproject_features()
+           Verif : grep "_apply_reproject" geo_fixer_dialog.py
+           Verif : grep "reproject_features" core/geometry_fixer.py
+
+[OK]  7.2  Mode Depuis les champs : Longitude/Latitude -> Point
+           Comboboxes pre-selectionnees par nom de champ.
+           Impl  : geo_fixer_dialog.py :: _apply_from_fields()
+                 : core/geometry_fixer.py :: build_geometry_from_lonlat()
+           Verif : grep "_apply_from_fields\|build_geometry_from_lonlat" geo_fixer_dialog.py
+           Verif : grep "build_geometry_from_lonlat" core/geometry_fixer.py
+
+[OK]  7.3  Mode Depuis les champs : Champ WKT (tous types geometriques)
+           Impl  : geo_fixer_dialog.py :: _apply_from_fields()
+                 : core/geometry_fixer.py :: build_geometry_from_wkt()
+           Verif : grep "build_geometry_from_wkt" core/geometry_fixer.py
+           Verif : grep "build_geometry_from_wkt" geo_fixer_dialog.py
+
+[OK]  7.4  Reprojection optionnelle des coordonnees des champs
+           Checkbox + selecteur SCR source -> reprojection vers SCR couche.
+           Impl  : geo_fixer_dialog.py :: _on_chk_reproject_toggled()
+                 : core/geometry_fixer.py :: build_geometry_from_lonlat()
+                                          :: build_geometry_from_wkt()
+                   -> src_crs + target_crs optionnel
+           Verif : grep "_on_chk_reproject_toggled" geo_fixer_dialog.py
+           Verif : grep "src_crs.*target_crs" core/geometry_fixer.py
+
+[OK]  7.5  Cas CSV (couche sans edition de geometrie en place)
+           Creation d une couche memoire avec geometries reconstruites.
+           Impl  : geo_fixer_dialog.py :: _apply_csv_from_fields()
+                 : core/geometry_fixer.py :: build_memory_layer_from_lonlat()
+                                          :: build_memory_layer_from_wkt()
+           Verif : grep "_apply_csv_from_fields" geo_fixer_dialog.py
+           Verif : grep "build_memory_layer_from_lonlat\|build_memory_layer_from_wkt" core/geometry_fixer.py
+
+[OK]  7.6  Messages de resultat avec compteurs par categorie d erreur
+           Categories : no_geom, bad_value, bad_wkt, xform_error.
+           Impl  : geo_fixer_dialog.py :: _show_apply_result()
+           Verif : grep "_show_apply_result\|err_no_geom\|err_bad_value" geo_fixer_dialog.py
+
+====================================================================
+BLOC 8 - PREVISUALISATION (Etape 2)
+  Fichiers : geo_fixer_dialog.py
+====================================================================
+
+[OK]  8.1  Canvas previsualisation sans modifier la couche
+           Bouton "Previsualiser la transformation".
+           Impl  : geo_fixer_dialog.py :: _run_step2_preview()
+           Verif : grep "_run_step2_preview" geo_fixer_dialog.py
+
+[OK]  8.2  Couches canvas : resultat vert + couche violet + SCR rouge + monde gris
+           <= 20 entites : geometries individuelles. > 20 : emprise globale.
+           Impl  : geo_fixer_dialog.py :: _run_step2_preview()
+                   -> N_GEOM_THRESHOLD = 20
+           Verif : grep "N_GEOM_THRESHOLD" geo_fixer_dialog.py
+
+[OK]  8.3  Zoom = union (emprise resultat + emprise couche + bounds SCR)
+           Impl  : geo_fixer_dialog.py :: _run_step2_preview()
+                   -> result_ext.combineExtentWith(...)
+           Verif : grep "combineExtentWith" geo_fixer_dialog.py
+
+[OK]  8.4  Symbologie epaisse : Points 1.3, Lignes 1.4, Polygones contour 1.8
+           Impl  : geo_fixer_dialog.py :: _run_step2_preview()
+                   -> "size": "1.3", "width": "1.4", "outline_width": "1.8"
+           Verif : grep "size.*1.3\|width.*1.4\|outline_width.*1.8" geo_fixer_dialog.py
+
+[OK]  8.5  Comptage geometries hors emprise SCR affiche sous le canvas
+           Impl  : geo_fixer_dialog.py :: _run_step2_preview()
+                   -> n_outside_crs
+           Verif : grep "n_outside_crs" geo_fixer_dialog.py
+
+[OK]  8.6  Layout etape 2 : splitter vertical (tableau / bas)
+           + splitter horizontal dans le bas (params gauche / canvas droite)
+           Impl  : geo_fixer_dialog.py :: _build_step2()
+                   -> QSplitter vertical + QSplitter horizontal
+           Verif : grep "h_splitter\|v_splitter\|QSplitter" geo_fixer_dialog.py
+
+====================================================================
+BLOC 9 - INTERNATIONALISATION (i18n)
+  Fichiers : i18n/__init__.py, i18n/translations.py, geo_fixer_plugin.py
+====================================================================
+
+[OK]  9.1  Systeme de traduction Python pur (sans lrelease / fichiers .qm)
+           Dictionnaires {chaine_fr: traduction} par langue.
+           Langues : en (defaut), fr, de, es, pt, it.
+           Impl  : i18n/__init__.py :: tr() / init() / detect_language() / set_language()
+                 : i18n/translations.py :: TRANSLATIONS (dict)
+           Verif : grep "def tr\|def init\|def detect_language" i18n/__init__.py
+           Verif : grep "TRANSLATIONS" i18n/translations.py
+
+[OK]  9.2  Detection automatique de la langue depuis les preferences QGIS
+           Lit locale/userLocale (ex : "fr_FR"). Repli anglais si non supporte.
+           Impl  : i18n/__init__.py :: detect_language()
+                   -> QSettings().value("locale/userLocale")
+           Verif : grep "locale/userLocale" i18n/__init__.py
+           Verif : grep "_SUPPORTED_LANGUAGES" i18n/__init__.py
+
+[OK]  9.3  Initialisation au demarrage du plugin
+           Impl  : geo_fixer_plugin.py :: initGui()
+                   -> _init_translations()
+           Verif : grep "_init_translations" geo_fixer_plugin.py
+
+[OK]  9.4  Ordre de repli : langue active -> anglais -> source francaise
+           Impl  : i18n/__init__.py :: tr()
+                   -> TRANSLATIONS[lang].get(text) -> TRANSLATIONS["en"].get(text) -> text
+           Verif : grep "TRANSLATIONS.get.*en" i18n/__init__.py
+
+====================================================================
+BLOC 10 - COMPATIBILITE ET INFRASTRUCTURE
+  Fichiers : core/qt_compat.py, core/utils.py, geo_fixer/__init__.py
+====================================================================
+
+[OK]  10.1 Compatibilite Qt5 (QGIS 3) / Qt6 (QGIS 4) centralisee
+           Toutes les constantes PyQt resolues en un seul try/except.
+           Impl  : core/qt_compat.py
+                   -> _QFrame_HLine/Sunken, _QTable_*, _QHeaderView_*
+                   -> _Qt_*, _QMsgBox_Yes/No, _QDialog_Accepted
+           Verif : grep "_QFrame_HLine\|_QDialog_Accepted\|_QMsgBox_Yes" core/qt_compat.py
+
+[OK]  10.2 Utilitaires partages entre dialogues (evite la duplication)
+           _NoWheelCombo, get_world_layer(), make_crs_selector(), make_map_canvas().
+           Impl  : core/utils.py
+           Verif : grep "class _NoWheelCombo\|def get_world_layer\|def make_crs_selector\|def make_map_canvas" core/utils.py
+
+[OK]  10.3 Nettoyage du cache Python au demarrage
+           Impl  : geo_fixer/__init__.py :: _clear_pycache() (si present)
+           Verif : grep "_clear_pycache\|__pycache__" __init__.py
+
+====================================================================
+INSTRUCTIONS DE MAINTENANCE DU FICHIER
+====================================================================
+
+Mettre a jour la version et la date a chaque livraison.
+Ajouter chaque nouvelle fonctionnalite dans le BLOC existant le plus
+  approprie. Creer un nouveau BLOC seulement si necessaire.
+Passer [N/A] -> [OK] uniquement quand l utilisateur confirme.
+Passer [N/A] -> [KO] quand l utilisateur signale un probleme.
+Repasser [KO] -> [OK] apres correction confirmee.
+Ne jamais marquer [OK] sur la seule base d une implementation.
+CE FICHIER DOIT ETRE MIS A JOUR DANS LE MEME GESTE QUE TOUTE
+MODIFICATION DU CODE, SANS ATTENDRE UN RAPPEL DE L UTILISATEUR.
+Chaque livraison ZIP doit inclure une version a jour de ce fichier.
+
+====================================================================
+VERIFICATION SYSTEMATIQUE APRES CHAQUE MODIFICATION
+====================================================================
+
+REGLE ABSOLUE : apres TOUTE modification (correction, ajout,
+refactorisation, deplacement de fichier), relancer SYSTEMATIQUEMENT
+les Verif des fonctionnalites touchees AVANT de livrer le ZIP.
+
+Etapes :
+  1. Identifier les fichiers modifies
+  2. Consulter la table de correspondance ci-dessous
+  3. Relancer toutes les commandes Verif concernees
+  4. Mettre a jour les Verif si le code a ete deplace
+  5. Corriger tout echec avant de zipper
+
+====================================================================
+CORRESPONDANCE FONCTIONNALITES <-> FICHIERS
+====================================================================
+
+  geo_fixer/__init__.py    -> 10.3
+  geo_fixer_plugin.py      -> 1.4, 9.3
+  geo_fixer_dialog.py      -> 1.2, 1.3, 2.1-2.6, 3.1-3.4, 4.1-4.2,
+                              5.5-5.6, 6.4-6.6, 7.1-7.6, 8.1-8.6
+  field_config_dialog.py   -> 5.1-5.4
+  core/qt_compat.py        -> 10.1
+  core/utils.py            -> 3.1, 4.1, 10.2
+  core/layer_inspector.py  -> 6.1-6.3
+  core/geometry_fixer.py   -> 7.1-7.5
+  i18n/__init__.py         -> 9.1-9.2, 9.4
+  i18n/translations.py     -> 9.1
+
+====================================================================
+CHECKLIST AVANT LIVRAISON
+====================================================================
+  [ ] Commandes Verif des fichiers modifies passent toutes
+  [ ] python3 -c "import ast; ast.parse(open('geo_fixer_dialog.py').read())"
+  [ ] python3 -c "import ast; ast.parse(open('field_config_dialog.py').read())"
+  [ ] python3 -c "import ast; ast.parse(open('core/layer_inspector.py').read())"
+  [ ] python3 -c "import ast; ast.parse(open('core/geometry_fixer.py').read())"
+  [ ] python3 -c "import ast; ast.parse(open('i18n/__init__.py').read())"
+  [ ] Structure zip : geo_fixer/ a la racine
+  [ ] FONCTIONNALITES.txt inclus et a jour dans le zip
+  [ ] README.md inclus dans geo_fixer/
+====================================================================
