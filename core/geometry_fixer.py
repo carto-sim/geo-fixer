@@ -118,9 +118,8 @@ def reproject_features(
                 continue
 
             try:
-                # transform() modifies geometry in-place → clone first
-                import copy
-                new_geom = copy.copy(geom)
+                # transform() modifies geometry in-place → use the copy constructor
+                new_geom = QgsGeometry(geom)
                 new_geom.transform(xform)
                 if layer.changeGeometry(fid, new_geom):
                     n_ok += 1
@@ -389,7 +388,7 @@ def build_memory_layer_from_lonlat(
     try:
         from qgis.core import (
             QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
-            QgsProject, QgsWkbTypes
+            QgsProject,
         )
 
         # ── Build the memory layer URI ─────────────────────────────────────
@@ -463,7 +462,7 @@ def build_memory_layer_from_wkt(
 
     try:
         from qgis.core import (
-            QgsVectorLayer, QgsFeature, QgsGeometry, QgsProject, QgsWkbTypes
+            QgsVectorLayer, QgsFeature, QgsGeometry, QgsProject,
         )
 
         # Determine the geometry type by reading the first valid WKT value
@@ -529,8 +528,8 @@ def _check_editable(layer) -> Optional[str]:
         return "Aucune couche sélectionnée."
     if not layer.isValid():
         return "La couche n'est pas valide."
-    if not (layer.dataProvider().capabilities()
-            & layer.dataProvider().ChangeGeometries):
+    from .qt_compat import _QVDataProvider_ChangeGeometries
+    if not (layer.dataProvider().capabilities() & _QVDataProvider_ChangeGeometries):
         return (
             "Le format de cette couche ne supporte pas l'édition de géométrie.\n"
             "Pour un fichier CSV, utilisez le mode de création d'une nouvelle couche."
@@ -546,10 +545,8 @@ def _to_float(value) -> Optional[float]:
 
     :return: float ou None si la conversion échoue.
     """
-    if value is None:
-        return None
-    # Valeur NULL Qt (QPyNullVariant)
-    if hasattr(value, '__class__') and value.__class__.__name__ == 'QPyNullVariant':
+    from .qt_compat import _is_null
+    if _is_null(value):
         return None
     try:
         result = float(value)

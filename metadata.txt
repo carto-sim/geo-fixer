@@ -3,7 +3,7 @@ name=GeoFixer
 qgisMinimumVersion=3.16
 qgisMaximumVersion=4.99
 description=Corrige ou définit la géométrie d'entités vectorielles depuis des champs de coordonnées (lon/lat, WKT) ou par reprojection. Gère aussi la définition du SCR sur les couches sans système de coordonnées, y compris les CSV.
-version=1.3.8
+version=1.4.9
 author=GeoFixer Plugin
 email=contact@example.com
 
@@ -19,3 +19,4 @@ category=Vector
 icon=icon.png
 experimental=False
 deprecated=False
+changelog=1.4.9: QGIS 3/4 compatibility audit — null-value handling (QPyNullVariant → qgis.core.NULL), geometry clone fix (copy.copy → QgsGeometry copy constructor), Qt6 enum compat for QgsMapLayerProxyModel and QgsVectorDataProvider, i18n fixes in EN/DE/ES translation dicts, icon added

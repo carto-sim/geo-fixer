@@ -48,6 +48,7 @@ from .core.qt_compat import (
     _Qt_UserRole, _Qt_DisplayRole,
     _Qt_Window, _Qt_WindowMaximize, _Qt_Vertical, _Qt_Horizontal,
     _QMsgBox_Yes, _QMsgBox_No, _QDialog_Accepted,
+    _QMapLayerProxyModel_VectorLayer,
 )
 from .core.utils import _NoWheelCombo, get_world_layer, make_crs_selector, make_map_canvas
 
@@ -364,9 +365,9 @@ class GeoFixerDialog(QDialog):
 
         try:
             from qgis.gui import QgsMapLayerComboBox
-            from qgis.core import QgsMapLayerProxyModel
             self._layer_combo = QgsMapLayerComboBox()
-            self._layer_combo.setFilters(QgsMapLayerProxyModel.VectorLayer)
+            if _QMapLayerProxyModel_VectorLayer is not None:
+                self._layer_combo.setFilters(_QMapLayerProxyModel_VectorLayer)
             self._layer_combo.setAllowEmptyLayer(True)
             # Block signals while clearing to prevent
             # QgsMapLayerComboBox from auto-selecting the first layer at startup

@@ -16,6 +16,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from .qt_compat import _is_null
+from ..i18n import tr
+
 logger = logging.getLogger(__name__)
 
 # Maximum number of features inspected for problem detection
@@ -123,9 +126,7 @@ def detect_field_types_by_values(layer) -> Dict[str, FieldTypeInfo]:
                 raw = feat[fname]
 
                 # NULL value → ignored (not counted in the total)
-                if raw is None:
-                    continue
-                if hasattr(raw, '__class__') and raw.__class__.__name__ == 'QPyNullVariant':
+                if _is_null(raw):
                     continue
 
                 val_str = str(raw).strip()
@@ -268,18 +269,14 @@ def find_problematic_features(
             attrs: dict = {}
             for fname in show_fields:
                 val = feat[fname]
-                if val is None or (hasattr(val, '__class__')
-                                   and val.__class__.__name__ == 'QPyNullVariant'):
-                    attrs[fname] = ""
-                else:
-                    attrs[fname] = str(val)
+                attrs[fname] = "" if _is_null(val) else str(val)
 
             # ── Test 1: missing geometry ──────────────────────────────────
             if geom is None or geom.isNull() or geom.isEmpty():
                 results.append(ProblematicFeature(
                     feature_id=fid,
                     reason="no_geometry",
-                    reason_label="Sans géométrie",
+                    reason_label=tr("Sans géométrie"),
                     attributes=attrs,
                 ))
                 continue
@@ -293,7 +290,7 @@ def find_problematic_features(
                     results.append(ProblematicFeature(
                         feature_id=fid,
                         reason="outside_crs",
-                        reason_label="Hors emprise SCR",
+                        reason_label=tr("Hors emprise SCR"),
                         attributes=attrs,
                     ))
                     continue

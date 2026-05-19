@@ -74,3 +74,46 @@ except AttributeError:
     _QMsgBox_No  = QMessageBox.No    # type: ignore
 
     _QDialog_Accepted = QDialog.Accepted  # type: ignore
+
+
+# ── NULL attribute value detection ───────────────────────────────────────────
+# In QGIS 3 / PyQt5, null attribute values are QPyNullVariant objects.
+# In QGIS 4 / PyQt6, they are Python None or a falsy QVariant sentinel.
+# qgis.core.NULL is a singleton that compares equal to any null variant
+# across both versions and is the recommended cross-version null check.
+try:
+    from qgis.core import NULL as _QGIS_NULL
+
+    def _is_null(val) -> bool:
+        """Return True if a QGIS attribute value is NULL (QGIS 3 and 4 safe)."""
+        return val is None or val == _QGIS_NULL
+except ImportError:
+    def _is_null(val) -> bool:  # type: ignore[misc]
+        return val is None or (
+            hasattr(val, '__class__') and
+            val.__class__.__name__ in ('QPyNullVariant', 'QVariant')
+        )
+
+
+# ── QgsMapLayerProxyModel filter constant ────────────────────────────────────
+# Qt6 / QGIS 4 moved enum values into nested enum classes.
+try:
+    from qgis.core import QgsMapLayerProxyModel as _QMLPM
+    try:
+        _QMapLayerProxyModel_VectorLayer = _QMLPM.Filter.VectorLayer  # QGIS 4
+    except AttributeError:
+        _QMapLayerProxyModel_VectorLayer = _QMLPM.VectorLayer          # QGIS 3
+except ImportError:
+    _QMapLayerProxyModel_VectorLayer = None
+
+
+# ── QgsVectorDataProvider.ChangeGeometries capability flag ───────────────────
+# Qt6 / QGIS 4 moved capability flags into a nested Capability enum.
+try:
+    from qgis.core import QgsVectorDataProvider as _QVDP
+    try:
+        _QVDataProvider_ChangeGeometries = _QVDP.Capability.ChangeGeometries  # QGIS 4
+    except AttributeError:
+        _QVDataProvider_ChangeGeometries = _QVDP.ChangeGeometries              # QGIS 3
+except ImportError:
+    _QVDataProvider_ChangeGeometries = 4  # numeric fallback (historic value)

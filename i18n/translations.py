@@ -136,15 +136,13 @@ TRANSLATIONS: dict = {
         "GeoFixer — Création Shapefile requise":
             "GeoFixer — Shapefile creation required",
         "(Canvas non disponible)": "(Canvas not available)",
-        'Si les coordonnées dans les champs sont dans un SCR différent\nde la couche, cochez cette case et indiquez le SCR source.':
-            'Wenn die Koordinaten in den Feldern ein anderes KBS haben\nals der Layer, aktivieren Sie dieses Feld und geben Sie das Quell-KBS an.',
-        'Aucune action sélectionnée.\nChoisissez « Reprojeter » ou « Définir depuis les champs ».':
-            'Keine Aktion ausgewählt.\nWählen Sie „Reprojizieren" oder „Aus Feldern definieren".',
-        'Aucune entité sélectionnée.\nSélectionnez au moins une entité dans le tableau.':
-            'Kein Element ausgewählt.\nWählen Sie mindestens ein Element in der Tabelle.',
-        'Configuration des champs':
-            'Feldkonfiguration',
         "Configuration des champs": "Field configuration",
+        'Si les coordonnées dans les champs sont dans un SCR différent\nde la couche, cochez cette case et indiquez le SCR source.':
+            "If the coordinates in the fields are in a different CRS\nthan the layer, check this box and specify the source CRS.",
+        'Aucune action sélectionnée.\nChoisissez « Reprojeter » ou « Définir depuis les champs ».':
+            "No action selected.\nChoose 'Reproject' or 'Define from fields'.",
+        'Aucune entité sélectionnée.\nSélectionnez au moins une entité dans le tableau.':
+            "No feature selected.\nSelect at least one feature in the table.",
         'Aucune couche sélectionnée.':
             'No layer selected.',
         '🔍  Prévisualiser':
@@ -251,13 +249,13 @@ TRANSLATIONS: dict = {
             "GeoFixer — Shapefile-Erstellung erforderlich",
         "(Canvas non disponible)": "(Kartenansicht nicht verfügbar)",
         'Si les coordonnées dans les champs sont dans un SCR différent\nde la couche, cochez cette case et indiquez le SCR source.':
-            'Si las coordenadas en los campos tienen un SRC diferente\nal de la capa, marque esta casilla e indique el SRC de origen.',
+            'Wenn die Koordinaten in den Feldern ein anderes KBS haben\nals der Layer, aktivieren Sie dieses Feld und geben Sie das Quell-KBS an.',
         'Aucune action sélectionnée.\nChoisissez « Reprojeter » ou « Définir depuis les champs ».':
-            'Ninguna acción seleccionada.\nElija «Reproyectar» o «Definir desde los campos».',
+            'Keine Aktion ausgewählt.\nWählen Sie „Reprojizieren" oder „Aus Feldern definieren".',
         'Aucune entité sélectionnée.\nSélectionnez au moins une entité dans le tableau.':
-            'Ninguna entidad seleccionada.\nSeleccione al menos una entidad en la tabla.',
+            'Kein Element ausgewählt.\nWählen Sie mindestens ein Element in der Tabelle.',
         'Configuration des champs':
-            'Configuración de campos',
+            'Feldkonfiguration',
         'Aucune couche sélectionnée.':
             'Kein Layer ausgewählt.',
         '🔍  Prévisualiser':
@@ -364,13 +362,13 @@ TRANSLATIONS: dict = {
             "GeoFixer — Creación de Shapefile requerida",
         "(Canvas non disponible)": "(Lienzo no disponible)",
         'Si les coordonnées dans les champs sont dans un SCR différent\nde la couche, cochez cette case et indiquez le SCR source.':
-            'Se as coordenadas nos campos estiverem num SRC diferente\ndo da camada, marque esta caixa e indique o SRC de origem.',
+            'Si las coordenadas en los campos tienen un SRC diferente\nal de la capa, marque esta casilla e indique el SRC de origen.',
         'Aucune action sélectionnée.\nChoisissez « Reprojeter » ou « Définir depuis les champs ».':
-            'Nenhuma ação selecionada.\nEscolha «Reprojetar» ou «Definir a partir dos campos».',
+            'Ninguna acción seleccionada.\nElija «Reproyectar» o «Definir desde los campos».',
         'Aucune entité sélectionnée.\nSélectionnez au moins une entité dans le tableau.':
-            'Nenhuma feição selecionada.\nSelecione pelo menos uma feição na tabela.',
+            'Ninguna entidad seleccionada.\nSeleccione al menos una entidad en la tabla.',
         'Configuration des champs':
-            'Configuração de campos',
+            'Configuración de campos',
         'Aucune couche sélectionnée.':
             'Ninguna capa seleccionada.',
         '🔍  Prévisualiser':

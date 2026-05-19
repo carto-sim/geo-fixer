@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 from .core.qt_compat import (
     _QHeaderView_ResizeToContents, _QTable_NoEditTriggers, _QTable_NoSelection,
     _Qt_Window, _Qt_Vertical, _Qt_Horizontal, _QDialog_Accepted,
+    _is_null,
 )
 from .core.utils import _NoWheelCombo, get_world_layer, make_crs_selector, make_map_canvas
 
@@ -155,11 +156,7 @@ class FieldConfigDialog(QDialog):
                 row = {}
                 for fname in self._field_names:
                     val = feat[fname]
-                    if val is None or (hasattr(val, '__class__')
-                                       and val.__class__.__name__ == 'QPyNullVariant'):
-                        row[fname] = ""
-                    else:
-                        row[fname] = str(val)
+                    row[fname] = "" if _is_null(val) else str(val)
                 rows.append(row)
         except Exception:
             pass
@@ -182,8 +179,7 @@ class FieldConfigDialog(QDialog):
             for feat in self._layer.getFeatures(QgsFeatureRequest().setLimit(100)):
                 for fname in self._field_names:
                     val = feat[fname]
-                    if val is None or (hasattr(val, '__class__')
-                                       and val.__class__.__name__ == 'QPyNullVariant'):
+                    if _is_null(val):
                         continue
                     s = str(val).strip()
                     if not s:
