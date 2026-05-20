@@ -117,3 +117,58 @@ try:
         _QVDataProvider_ChangeGeometries = _QVDP.ChangeGeometries              # QGIS 3
 except ImportError:
     _QVDataProvider_ChangeGeometries = 4  # numeric fallback (historic value)
+
+
+# ── QVariant field type constants ─────────────────────────────────────────────
+# PyQt6 (QGIS 4) moved QVariant type constants into QVariant.Type.*.
+try:
+    from qgis.PyQt.QtCore import QVariant as _QV
+    try:
+        _QVariant_Int    = _QV.Type.Int
+        _QVariant_Double = _QV.Type.Double
+        _QVariant_Date   = _QV.Type.Date
+        _QVariant_String = _QV.Type.String
+    except AttributeError:
+        _QVariant_Int    = _QV.Int     # type: ignore[attr-defined]
+        _QVariant_Double = _QV.Double  # type: ignore[attr-defined]
+        _QVariant_Date   = _QV.Date    # type: ignore[attr-defined]
+        _QVariant_String = _QV.String  # type: ignore[attr-defined]
+except ImportError:
+    _QVariant_Int = _QVariant_Double = _QVariant_Date = _QVariant_String = 2
+
+
+# ── No-geometry layer detection ───────────────────────────────────────────────
+# QgsWkbTypes.NullGeometry / NoGeometry were reorganised in QGIS 4 under
+# Qgis.GeometryType and Qgis.WkbType.  This helper abstracts both versions.
+def _is_no_geometry_layer(layer) -> bool:
+    """Return True if *layer* carries no geometry type (QGIS 3 and 4 safe)."""
+    try:
+        from qgis.core import QgsWkbTypes
+        wkb = layer.wkbType()
+
+        # Resolve enum values for the current QGIS version
+        try:
+            _null = QgsWkbTypes.NullGeometry   # QGIS 3
+            _none = QgsWkbTypes.NoGeometry
+            _unk  = QgsWkbTypes.Unknown
+            if QgsWkbTypes.geometryType(wkb) == _null:
+                return True
+        except AttributeError:
+            # QGIS 4: enum moved to Qgis.GeometryType / Qgis.WkbType
+            try:
+                from qgis.core import Qgis
+                _null = Qgis.GeometryType.Null
+                _none = getattr(Qgis.WkbType, 'NoGeometry', None)
+                _unk  = getattr(Qgis.WkbType, 'Unknown', None)
+                if QgsWkbTypes.geometryType(wkb) == _null:
+                    return True
+            except (ImportError, AttributeError):
+                _none = _unk = None
+
+        if _none is not None and wkb == _none:
+            return True
+        if _unk is not None and wkb == _unk and layer.extent().isNull():
+            return True
+        return False
+    except Exception:
+        return False

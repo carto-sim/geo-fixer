@@ -149,6 +149,34 @@ TRANSLATIONS: dict = {
             '🔍  Preview',
         'Formats : Shapefile · GeoPackage · GeoJSON · KML/KMZ · GML · CSV/TSV · MapInfo TAB/MIF · GPX · DXF · DWG · ESRI FileGDB · SQLite/SpatiaLite · .gz · .zip':
             'Formats: Shapefile · GeoPackage · GeoJSON · KML/KMZ · GML · CSV/TSV · MapInfo TAB/MIF · GPX · DXF · DWG · ESRI FileGDB · SQLite/SpatiaLite · .gz · .zip',
+
+        # ── Nouvelles chaînes (corr. bugs) ────────────────────────────────────
+        "Colonnes numériques candidates (lon/lat) — {n} entité(s)":
+            "Numeric candidate columns (lon/lat) — {n} feature(s)",
+        "Colonnes WKT détectées — {n} entité(s)":
+            "WKT columns detected — {n} feature(s)",
+        "Aperçu — {n} entité(s)":
+            "Preview — {n} feature(s)",
+        "Le fichier <b>{filename}</b> contient {count} couche(s).<br>"
+        "Sélectionnez la couche à traiter :":
+            "The file <b>{filename}</b> contains {count} layer(s).<br>"
+            "Select the layer to process:",
+        "La couche « {name} » ne possède aucune géométrie.\n\n"
+        "La fenêtre de configuration des champs va s'ouvrir. "
+        "Définissez les types de champs et le mode géométrique "
+        "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
+        "Un Shapefile sera créé avec les géométries construites depuis les champs — "
+        "vous pourrez corriger les éventuelles géométries manquantes à l'étape 2.":
+            "The layer '{name}' has no geometry.\n\n"
+            "The field configuration window will open. "
+            "Set the field types and geometry mode "
+            "(Lon/Lat or WKT), then preview to validate the CRS.\n\n"
+            "A Shapefile will be created with geometries built from the fields — "
+            "you can correct any missing geometries at step 2.",
+        "Veuillez sélectionner ou ouvrir une couche avant de continuer.":
+            "Please select or open a layer before continuing.",
+        "{n_total} entité(s) listée(s)  —  {n_sel} sélectionnée(s).":
+            "{n_total} feature(s) listed  —  {n_sel} selected.",
     },
 
     # ==========================================================================
@@ -262,6 +290,34 @@ TRANSLATIONS: dict = {
             '🔍  Vorschau',
         'Formats : Shapefile · GeoPackage · GeoJSON · KML/KMZ · GML · CSV/TSV · MapInfo TAB/MIF · GPX · DXF · DWG · ESRI FileGDB · SQLite/SpatiaLite · .gz · .zip':
             'Formate: Shapefile · GeoPackage · GeoJSON · KML/KMZ · GML · CSV/TSV · MapInfo TAB/MIF · GPX · DXF · DWG · ESRI FileGDB · SQLite/SpatiaLite · .gz · .zip',
+
+        # ── Nouvelles chaînes (corr. bugs) ────────────────────────────────────
+        "Colonnes numériques candidates (lon/lat) — {n} entité(s)":
+            "Numerische Kandidatenspalten (Lon/Lat) — {n} Element(e)",
+        "Colonnes WKT détectées — {n} entité(s)":
+            "WKT-Spalten erkannt — {n} Element(e)",
+        "Aperçu — {n} entité(s)":
+            "Vorschau — {n} Element(e)",
+        "Le fichier <b>{filename}</b> contient {count} couche(s).<br>"
+        "Sélectionnez la couche à traiter :":
+            "Die Datei <b>{filename}</b> enthält {count} Layer.<br>"
+            "Wählen Sie den zu verarbeitenden Layer:",
+        "La couche « {name} » ne possède aucune géométrie.\n\n"
+        "La fenêtre de configuration des champs va s'ouvrir. "
+        "Définissez les types de champs et le mode géométrique "
+        "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
+        "Un Shapefile sera créé avec les géométries construites depuis les champs — "
+        "vous pourrez corriger les éventuelles géométries manquantes à l'étape 2.":
+            "Der Layer „{name}" besitzt keine Geometrie.\n\n"
+            "Das Feldkonfigurationsfenster wird geöffnet. "
+            "Legen Sie die Feldtypen und den Geometriemodus fest "
+            "(Lon/Lat oder WKT), und erstellen Sie eine Vorschau, um das KBS zu bestätigen.\n\n"
+            "Eine Shapefile wird mit den aus den Feldern erstellten Geometrien erzeugt — "
+            "fehlende Geometrien können in Schritt 2 korrigiert werden.",
+        "Veuillez sélectionner ou ouvrir une couche avant de continuer.":
+            "Bitte wählen Sie einen Layer aus oder öffnen Sie eine Datei, bevor Sie fortfahren.",
+        "{n_total} entité(s) listée(s)  —  {n_sel} sélectionnée(s).":
+            "{n_total} Element(e) aufgelistet  —  {n_sel} ausgewählt.",
     },
 
     # ==========================================================================
@@ -375,6 +431,34 @@ TRANSLATIONS: dict = {
             '🔍  Previsualizar',
         'Formats : Shapefile · GeoPackage · GeoJSON · KML/KMZ · GML · CSV/TSV · MapInfo TAB/MIF · GPX · DXF · DWG · ESRI FileGDB · SQLite/SpatiaLite · .gz · .zip':
             'Formatos: Shapefile · GeoPackage · GeoJSON · KML/KMZ · GML · CSV/TSV · MapInfo TAB/MIF · GPX · DXF · DWG · ESRI FileGDB · SQLite/SpatiaLite · .gz · .zip',
+
+        # ── Nouvelles chaînes (corr. bugs) ────────────────────────────────────
+        "Colonnes numériques candidates (lon/lat) — {n} entité(s)":
+            "Columnas numéricas candidatas (lon/lat) — {n} entidad(es)",
+        "Colonnes WKT détectées — {n} entité(s)":
+            "Columnas WKT detectadas — {n} entidad(es)",
+        "Aperçu — {n} entité(s)":
+            "Vista previa — {n} entidad(es)",
+        "Le fichier <b>{filename}</b> contient {count} couche(s).<br>"
+        "Sélectionnez la couche à traiter :":
+            "El archivo <b>{filename}</b> contiene {count} capa(s).<br>"
+            "Seleccione la capa a procesar:",
+        "La couche « {name} » ne possède aucune géométrie.\n\n"
+        "La fenêtre de configuration des champs va s'ouvrir. "
+        "Définissez les types de champs et le mode géométrique "
+        "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
+        "Un Shapefile sera créé avec les géométries construites depuis les champs — "
+        "vous pourrez corriger les éventuelles géométries manquantes à l'étape 2.":
+            "La capa «{name}» no tiene geometría.\n\n"
+            "Se abrirá la ventana de configuración de campos. "
+            "Defina los tipos de campo y el modo de geometría "
+            "(Lon/Lat o WKT), luego previsualice para validar el SRC.\n\n"
+            "Se creará un Shapefile con las geometrías construidas desde los campos — "
+            "podrá corregir las geometrías faltantes en el paso 2.",
+        "Veuillez sélectionner ou ouvrir une couche avant de continuer.":
+            "Seleccione o abra una capa antes de continuar.",
+        "{n_total} entité(s) listée(s)  —  {n_sel} sélectionnée(s).":
+            "{n_total} entidad(es) listada(s)  —  {n_sel} seleccionada(s).",
     },
 
     # ==========================================================================
@@ -488,6 +572,34 @@ TRANSLATIONS: dict = {
             'Nenhuma feição selecionada.\nSelecione pelo menos uma feição na tabela.',
         'Configuration des champs':
             'Configuração de campos',
+
+        # ── Nouvelles chaînes (corr. bugs) ────────────────────────────────────
+        "Colonnes numériques candidates (lon/lat) — {n} entité(s)":
+            "Colunas numéricas candidatas (lon/lat) — {n} feição(ões)",
+        "Colonnes WKT détectées — {n} entité(s)":
+            "Colunas WKT detectadas — {n} feição(ões)",
+        "Aperçu — {n} entité(s)":
+            "Pré-visualização — {n} feição(ões)",
+        "Le fichier <b>{filename}</b> contient {count} couche(s).<br>"
+        "Sélectionnez la couche à traiter :":
+            "O arquivo <b>{filename}</b> contém {count} camada(s).<br>"
+            "Selecione a camada a processar:",
+        "La couche « {name} » ne possède aucune géométrie.\n\n"
+        "La fenêtre de configuration des champs va s'ouvrir. "
+        "Définissez les types de champs et le mode géométrique "
+        "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
+        "Un Shapefile sera créé avec les géométries construites depuis les champs — "
+        "vous pourrez corriger les éventuelles géométries manquantes à l'étape 2.":
+            "A camada «{name}» não possui geometria.\n\n"
+            "A janela de configuração de campos será aberta. "
+            "Defina os tipos de campo e o modo de geometria "
+            "(Lon/Lat ou WKT), depois pré-visualize para validar o SRC.\n\n"
+            "Um Shapefile será criado com as geometrias construídas a partir dos campos — "
+            "poderá corrigir geometrias em falta na etapa 2.",
+        "Veuillez sélectionner ou ouvrir une couche avant de continuer.":
+            "Selecione ou abra uma camada antes de continuar.",
+        "{n_total} entité(s) listée(s)  —  {n_sel} sélectionnée(s).":
+            "{n_total} feição(ões) listada(s)  —  {n_sel} selecionada(s).",
     },
 
     # ==========================================================================
@@ -601,5 +713,33 @@ TRANSLATIONS: dict = {
             'Nessun elemento selezionato.\nSelezionare almeno un elemento nella tabella.',
         'Configuration des champs':
             'Configurazione dei campi',
+
+        # ── Nouvelles chaînes (corr. bugs) ────────────────────────────────────
+        "Colonnes numériques candidates (lon/lat) — {n} entité(s)":
+            "Colonne numeriche candidate (lon/lat) — {n} elemento/i",
+        "Colonnes WKT détectées — {n} entité(s)":
+            "Colonne WKT rilevate — {n} elemento/i",
+        "Aperçu — {n} entité(s)":
+            "Anteprima — {n} elemento/i",
+        "Le fichier <b>{filename}</b> contient {count} couche(s).<br>"
+        "Sélectionnez la couche à traiter :":
+            "Il file <b>{filename}</b> contiene {count} layer.<br>"
+            "Selezionare il layer da elaborare:",
+        "La couche « {name} » ne possède aucune géométrie.\n\n"
+        "La fenêtre de configuration des champs va s'ouvrir. "
+        "Définissez les types de champs et le mode géométrique "
+        "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
+        "Un Shapefile sera créé avec les géométries construites depuis les champs — "
+        "vous pourrez corriger les éventuelles géométries manquantes à l'étape 2.":
+            "Il layer «{name}» non ha geometria.\n\n"
+            "Si aprirà la finestra di configurazione dei campi. "
+            "Definire i tipi di campo e la modalità geometrica "
+            "(Lon/Lat o WKT), quindi visualizzare l'anteprima per convalidare il SRC.\n\n"
+            "Verrà creato uno Shapefile con le geometrie costruite dai campi — "
+            "le geometrie mancanti potranno essere corrette nella fase 2.",
+        "Veuillez sélectionner ou ouvrir une couche avant de continuer.":
+            "Selezionare o aprire un layer prima di continuare.",
+        "{n_total} entité(s) listée(s)  —  {n_sel} sélectionnée(s).":
+            "{n_total} elemento/i elencato/i  —  {n_sel} selezionato/i.",
     },
 }

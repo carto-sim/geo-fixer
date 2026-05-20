@@ -232,7 +232,7 @@ class FieldConfigDialog(QDialog):
             hits = 0
             for feat in self._layer.getFeatures(QgsFeatureRequest().setLimit(50)):
                 val = feat[field_name]
-                if val is None:
+                if _is_null(val):
                     continue
                 s = str(val).strip()
                 if not s:
@@ -373,8 +373,8 @@ class FieldConfigDialog(QDialog):
 
         if not has_num and not has_wkt:
             lay.addWidget(QLabel(
-                "Aucun champ numérique (Integer/Real) ni champ WKT détecté.\n"
-                "Vous pourrez définir la géométrie à l'étape 2."
+                tr("Aucun champ numérique (Integer/Real) ni champ WKT détecté.\n"
+                   "Vous pourrez définir la géométrie à l'étape 2.")
             ))
             lay.addStretch()
             return w
@@ -564,16 +564,17 @@ class FieldConfigDialog(QDialog):
 
     def _refresh_geom_sample(self, mode_id: int) -> None:
         """Met à jour le tableau d'échantillon selon le mode actif."""
+        n = len(self._sample_rows)
         if mode_id == 1:
             cols  = self._numeric_fields
-            title = f"Colonnes numériques candidates (lon/lat) — {len(self._sample_rows)} entité(s)"
+            title = tr("Colonnes numériques candidates (lon/lat) — {n} entité(s)").format(n=n)
         elif mode_id == 2:
             cols  = self._wkt_fields
-            title = f"Colonnes WKT détectées — {len(self._sample_rows)} entité(s)"
+            title = tr("Colonnes WKT détectées — {n} entité(s)").format(n=n)
         else:
             all_useful = list(dict.fromkeys(self._numeric_fields + self._wkt_fields))
             cols  = all_useful[:6] or self._field_names[:6]
-            title = f"Aperçu — {len(self._sample_rows)} entité(s)"
+            title = tr("Aperçu — {n} entité(s)").format(n=n)
 
         if self._geom_sample_label:
             self._geom_sample_label.setText(
@@ -646,12 +647,11 @@ class FieldConfigDialog(QDialog):
             lat_col = self._lat_combo.currentText() if self._lat_combo else ""
             wkt_col = self._wkt_combo.currentText() if self._wkt_combo else ""
 
-            from qgis.core import QgsFeatureRequest
             for feat in self._layer.getFeatures():
                 try:
                     if mode_id == 1 and lon_col and lat_col:
                         rx = feat[lon_col]; ry = feat[lat_col]
-                        if rx is None or ry is None:
+                        if _is_null(rx) or _is_null(ry):
                             errors += 1; continue
                         x = float(str(rx).replace(',', '.'))
                         y = float(str(ry).replace(',', '.'))
@@ -665,7 +665,7 @@ class FieldConfigDialog(QDialog):
 
                     elif mode_id == 2 and wkt_col:
                         raw = feat[wkt_col]
-                        if raw is None or not str(raw).strip():
+                        if _is_null(raw) or not str(raw).strip():
                             errors += 1; continue
                         geom = QgsGeometry.fromWkt(str(raw).strip())
                         if geom and not geom.isNull():
@@ -843,11 +843,19 @@ class FieldConfigDialog(QDialog):
         self._update_ok_button()
 
     # ======================================================================
-    # Utilitaires
+    # Public API
     # ======================================================================
 
+    def get_geometry_mode(self) -> int:
+        """Return the selected geometry mode: 0=none, 1=lon/lat, 2=WKT."""
+        return self._geom_bg.checkedId() if self._geom_bg else 0
 
-    # get_world_layer() is now in core.utils
+    def get_coordinate_fields(self) -> tuple:
+        """Return (lon_field, lat_field, wkt_field) for the current selection."""
+        lon = self._lon_combo.currentText() if self._lon_combo else ""
+        lat = self._lat_combo.currentText() if self._lat_combo else ""
+        wkt = self._wkt_combo.currentText() if self._wkt_combo else ""
+        return (lon, lat, wkt)
 
     def get_data_extent_wgs84(self):
         """

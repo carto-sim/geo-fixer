@@ -26,9 +26,11 @@ Architecture :
   - Refresh canvas via QTimer.singleShot(80 ms)
 """
 
-import copy
 import logging
+import os
+import re
 from typing import Dict, List, Optional
+from urllib.parse import quote as _url_quote
 
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,
@@ -49,6 +51,9 @@ from .core.qt_compat import (
     _Qt_Window, _Qt_WindowMaximize, _Qt_Vertical, _Qt_Horizontal,
     _QMsgBox_Yes, _QMsgBox_No, _QDialog_Accepted,
     _QMapLayerProxyModel_VectorLayer,
+    _is_null,
+    _QVariant_Int, _QVariant_Double, _QVariant_Date, _QVariant_String,
+    _is_no_geometry_layer,
 )
 from .core.utils import _NoWheelCombo, get_world_layer, make_crs_selector, make_map_canvas
 
@@ -241,6 +246,9 @@ class GeoFixerDialog(QDialog):
         # WGS84 extent computed from fields during Shapefile configuration.
         # Used in the step-1 canvas when the Shapefile has NULL geometries.
         self._cached_data_extent_wgs = None
+        # Cached count of features without geometry (updated on layer change
+        # and after fixes are applied, not on every canvas refresh).
+        self._n_no_geom_cache:   int  = 0
 
         # ── Widget references (initialised in _build_*) ─────────────────
         # Étape 1
@@ -721,6 +729,7 @@ class GeoFixerDialog(QDialog):
         Synchronise le SCR et rafraîchit le canvas.
         """
         self._current_layer = layer
+        self._recompute_no_geom_cache()
 
         if layer is None:
             self._set_map_info("", _COLOR_INFO)
@@ -772,7 +781,6 @@ class GeoFixerDialog(QDialog):
         if not file_path:
             return
 
-        import os
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         ext       = os.path.splitext(file_path)[1].lower()
 
@@ -788,13 +796,12 @@ class GeoFixerDialog(QDialog):
                 #   ';'  → delimiter=;
                 #   '\t' → delimiter=\t  (two characters \ and t, not a real tab)
                 #   ','  → delimiter=,
-                if delimiter == '\t':
-                    delim_str = "\t"   # QGIS interprets the literal \t as a tab character
-                else:
-                    delim_str = delimiter   # pass the character as-is
+                # \t in QGIS delimitedtext URI means tab (two-char literal, not 0x09)
+                delim_str = "\\t" if delimiter == "\t" else delimiter
 
+                fp_encoded = _url_quote(file_path.replace("\\", "/"), safe="/:@")
                 uri = (
-                    f"file:///{file_path}"
+                    f"file:///{fp_encoded}"
                     f"?delimiter={delim_str}"
                     f"&detectTypes=yes"
                     f"&useHeader=yes"
@@ -804,7 +811,7 @@ class GeoFixerDialog(QDialog):
                 # Check: if only one column detected → wrong delimiter
                 if not layer.isValid() or layer.fields().count() <= 1:
                     # Fallback: URI without forcing delimiter (let QGIS auto-detect)
-                    uri_fallback = f"file:///{file_path}?detectTypes=yes&useHeader=yes"
+                    uri_fallback = f"file:///{fp_encoded}?detectTypes=yes&useHeader=yes"
                     layer_fb = QgsVectorLayer(uri_fallback, base_name, "delimitedtext")
                     if layer_fb.isValid() and layer_fb.fields().count() > 1:
                         layer = layer_fb
@@ -876,7 +883,6 @@ class GeoFixerDialog(QDialog):
         :param file_path: Chemin du fichier (affiché dans le titre)
         :return:          Nom de la couche choisie, ou None si annulé
         """
-        import os
         from qgis.PyQt.QtWidgets import (
             QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
             QListWidgetItem, QDialogButtonBox, QLabel,
@@ -888,8 +894,11 @@ class GeoFixerDialog(QDialog):
         lay = QVBoxLayout(dlg)
 
         lbl = QLabel(
-            f"Le fichier <b>{os.path.basename(file_path)}</b> contient "
-            f"{len(layers)} couche(s).<br>Sélectionnez la couche à traiter :"
+            tr("Le fichier <b>{filename}</b> contient {count} couche(s).<br>"
+               "Sélectionnez la couche à traiter :").format(
+                filename=os.path.basename(file_path),
+                count=len(layers),
+            )
         )
         lbl.setWordWrap(True)
         lay.addWidget(lbl)
@@ -937,16 +946,8 @@ class GeoFixerDialog(QDialog):
         """
         if layer is None or layer != self._current_layer:
             return   # Layer has changed since the timer was scheduled
-        try:
-            from qgis.core import QgsWkbTypes
-            wkb = layer.wkbType()
-            is_no_geom = (
-                QgsWkbTypes.geometryType(wkb) == QgsWkbTypes.NullGeometry
-                or wkb == QgsWkbTypes.NoGeometry
-                or (wkb == QgsWkbTypes.Unknown and layer.extent().isNull())
-            )
-        except Exception:
-            is_no_geom = False
+
+        is_no_geom = _is_no_geometry_layer(layer)
 
         if not is_no_geom:
             return
@@ -954,12 +955,13 @@ class GeoFixerDialog(QDialog):
         # Informer l'utilisateur avant d'ouvrir le dialogue
         QMessageBox.information(
             self, tr("GeoFixer — Couche sans géométrie"),
-            f"La couche « {layer.name()} » ne possède aucune géométrie.\n\n"
-            "La fenêtre de configuration des champs va s'ouvrir. "
-            "Définissez les types de champs et le mode géométrique "
-            "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
-            "Un Shapefile sera créé avec les géométries construites depuis les champs \u2014 "
-            "vous pourrez corriger les éventuelles géométries manquantes à l'\u00e9tape 2."
+            tr("La couche « {name} » ne possède aucune géométrie.\n\n"
+               "La fenêtre de configuration des champs va s'ouvrir. "
+               "Définissez les types de champs et le mode géométrique "
+               "(Lon/Lat ou WKT), puis prévisualisez pour valider le SCR.\n\n"
+               "Un Shapefile sera créé avec les géométries construites depuis les champs — "
+               "vous pourrez corriger les éventuelles géométries manquantes à l'étape 2."
+               ).format(name=layer.name())
         )
         self._export_to_shapefile()
 
@@ -995,22 +997,12 @@ class GeoFixerDialog(QDialog):
         if self._current_layer is None:
             QMessageBox.warning(
                 self, "GeoFixer",
-                "Veuillez sélectionner ou ouvrir une couche avant de continuer."
+                tr("Veuillez sélectionner ou ouvrir une couche avant de continuer.")
             )
             return
 
         # ── Detect layers that are entirely without geometry ─────────────
-        try:
-            from qgis.core import QgsWkbTypes
-            wkb = self._current_layer.wkbType()
-            is_no_geom = (
-                QgsWkbTypes.geometryType(wkb) == QgsWkbTypes.NullGeometry
-                or wkb == QgsWkbTypes.NoGeometry
-                or (wkb == QgsWkbTypes.Unknown
-                    and self._current_layer.extent().isNull())
-            )
-        except Exception:
-            is_no_geom = False
+        is_no_geom = _is_no_geometry_layer(self._current_layer)
 
         if is_no_geom:
             # Ouvrir le dialogue de configuration des champs.
@@ -1059,8 +1051,7 @@ class GeoFixerDialog(QDialog):
 
         # Verify that the user has defined a geometry mode (lon/lat or WKT).
         # If "No geometry" (mode 0) → no Shapefile, no step 2.
-        geom_mode = (field_dlg._geom_bg.checkedId()
-                     if field_dlg._geom_bg is not None else 0)
+        geom_mode = field_dlg.get_geometry_mode()
         if geom_mode == 0:
             QMessageBox.information(
                 self, tr("GeoFixer — Géométrie requise"),
@@ -1076,15 +1067,9 @@ class GeoFixerDialog(QDialog):
 
         # Retrieve the coordinate fields chosen in FieldConfigDialog
         # (used to populate geometries at Shapefile creation time)
-        _lon_field = (field_dlg._lon_combo.currentText()
-                      if field_dlg._lon_combo else "")
-        _lat_field = (field_dlg._lat_combo.currentText()
-                      if field_dlg._lat_combo else "")
-        _wkt_field = (field_dlg._wkt_combo.currentText()
-                      if field_dlg._wkt_combo else "")
+        _lon_field, _lat_field, _wkt_field = field_dlg.get_coordinate_fields()
 
         # ── 2. Choisir l'emplacement du fichier ───────────────────────────
-        import os as _os
         from qgis.PyQt.QtWidgets import QFileDialog as _QFD
 
         # Default directory: the source file's directory (if known)
@@ -1096,21 +1081,20 @@ class GeoFixerDialog(QDialog):
                 _src_path = _src_path.split("?")[0]
             if _src_path.startswith("file:///"):
                 _src_path = _src_path[8:]
-            if _os.path.exists(_src_path):
-                _src_dir = _os.path.dirname(_src_path)
+            if os.path.exists(_src_path):
+                _src_dir = os.path.dirname(_src_path)
         except Exception:
             pass
 
         # Nettoyer le nom de la couche pour en faire un nom de fichier valide :
         # strip suffixes added automatically (e.g. "[SHP]", "[CSV]")
-        import re as _re
-        _clean_name = _re.sub(r"\s*\[.*?\]\s*$", "", self._current_layer.name()).strip()
-        _clean_name = _re.sub(r'[\\/:*?"<>|]', "_", _clean_name)  # characters forbidden on Windows
+        _clean_name = re.sub(r"\s*\[.*?\]\s*$", "", self._current_layer.name()).strip()
+        _clean_name = re.sub(r'[\\/:*?"<>|]', "_", _clean_name)  # characters forbidden on Windows
         if not _clean_name:
             _clean_name = "export"
 
         if _src_dir:
-            _default_name = _os.path.join(_src_dir, _clean_name + ".shp")
+            _default_name = os.path.join(_src_dir, _clean_name + ".shp")
         else:
             _default_name = _clean_name + ".shp"
 
@@ -1125,7 +1109,7 @@ class GeoFixerDialog(QDialog):
 
         # Normalise the path (Windows separators → universal slashes for GDAL)
         # and ensure the .shp extension is present
-        save_path = _os.path.normpath(save_path)
+        save_path = os.path.normpath(save_path)
         if not save_path.lower().endswith(".shp"):
             save_path += ".shp"
 
@@ -1133,10 +1117,10 @@ class GeoFixerDialog(QDialog):
         # A Shapefile consists of several files (.shp, .dbf, .shx...).
         # GDAL may fail if any of them is locked. Check all
         # existing associated files before starting the export.
-        _base_path = _os.path.splitext(save_path)[0]
+        _base_path = os.path.splitext(save_path)[0]
         for _ext_to_check in (".shp", ".dbf", ".shx", ".prj", ".cpg"):
             _candidate = _base_path + _ext_to_check
-            if _os.path.exists(_candidate):
+            if os.path.exists(_candidate):
                 try:
                     with open(_candidate, "r+b"):
                         pass
@@ -1155,8 +1139,6 @@ class GeoFixerDialog(QDialog):
                 QgsVectorFileWriter, QgsProject,
                 QgsCoordinateTransformContext,
             )
-            from qgis.PyQt.QtCore import QVariant
-
             # ── 3. Build the memory layer ────────────────────────────────
             # Memory layer CRS: priority to the CRS chosen in the dialog,
             # then the CRS declared on the source layer, then EPSG:4326 as default.
@@ -1198,14 +1180,14 @@ class GeoFixerDialog(QDialog):
                 raise RuntimeError("Impossible de créer la couche mémoire.")
 
             _qv = {
-                "Integer": QVariant.Int,
-                "Real":    QVariant.Double,
-                "Date":    QVariant.Date,
-                "String":  QVariant.String,
+                "Integer": _QVariant_Int,
+                "Real":    _QVariant_Double,
+                "Date":    _QVariant_Date,
+                "String":  _QVariant_String,
             }
             mem_layer.dataProvider().addAttributes([
                 QgsField(f.name(), _qv.get(type_map.get(f.name(), "String"),
-                                           QVariant.String))
+                                           _QVariant_String))
                 for f in self._current_layer.fields()
             ])
             mem_layer.updateFields()
@@ -1265,11 +1247,7 @@ class GeoFixerDialog(QDialog):
                     fname  = field.name()
                     raw    = feat[fname]
                     target = type_map.get(fname, "String")
-                    is_null = (raw is None or (
-                        hasattr(raw, "__class__")
-                        and raw.__class__.__name__ == "QPyNullVariant"
-                    ))
-                    if is_null:
+                    if _is_null(raw):
                         nf[fname] = None
                     else:
                         try:
@@ -1428,13 +1406,10 @@ class GeoFixerDialog(QDialog):
             if has_crs_bounds:
                 zoom = QgsRectangle(crs_bounds)
             if data_extent_wgs is not None and not data_extent_wgs.isNull():
-                zoom = QgsRectangle(data_extent_wgs) if zoom is None else (
-                    zoom.__class__(zoom) or zoom
-                )
-                if zoom is not None:
-                    zoom.combineExtentWith(data_extent_wgs)
-                else:
+                if zoom is None:
                     zoom = QgsRectangle(data_extent_wgs)
+                else:
+                    zoom.combineExtentWith(data_extent_wgs)
             if zoom is None or zoom.isNull():
                 zoom = QgsRectangle(-180, -90, 180, 90)
 
@@ -1495,21 +1470,8 @@ class GeoFixerDialog(QDialog):
                     self._current_layer is not None and has_overlap
                 )
 
-            # ── Count features without geometry (sample up to 50,000) ───
-            n_no_geom = 0
-            if self._current_layer is not None:
-                try:
-                    from qgis.core import QgsFeatureRequest as _QFR
-                    _count = 0
-                    for _feat in self._current_layer.getFeatures():
-                        _count += 1
-                        if _count > 50_000:
-                            break
-                        _g = _feat.geometry()
-                        if _g is None or _g.isNull() or _g.isEmpty():
-                            n_no_geom += 1
-                except Exception:
-                    n_no_geom = 0
+            # ── Count features without geometry (cached; updated on layer change) ──
+            n_no_geom = self._n_no_geom_cache
 
             # ── Label ─────────────────────────────────────────────────────
             parts = []
@@ -1778,12 +1740,12 @@ class GeoFixerDialog(QDialog):
         self._update_entity_count()
 
     def _update_entity_count(self) -> None:
-        n_total    = self._entity_table.rowCount()
-        n_sel_items = len(self._entity_table.selectedItems() or [])
-        n_cols      = max(1, self._entity_table.columnCount())
-        n_sel_rows  = n_sel_items // n_cols
+        n_total   = self._entity_table.rowCount()
+        n_sel_rows = len({idx.row() for idx in self._entity_table.selectedIndexes()})
         self._entity_count_lbl.setText(
-            f"{n_total} entité(s) listée(s)  —  {n_sel_rows} sélectionnée(s)."
+            tr("{n_total} entité(s) listée(s)  —  {n_sel} sélectionnée(s).").format(
+                n_total=n_total, n_sel=n_sel_rows
+            )
         )
 
     # ======================================================================
@@ -1836,7 +1798,7 @@ class GeoFixerDialog(QDialog):
                 QgsGeometry, QgsPointXY, QgsRectangle,
                 QgsCoordinateTransform, QgsProject,
                 QgsSingleSymbolRenderer, QgsFillSymbol,
-                QgsMarkerSymbol, QgsLineSymbol, QgsWkbTypes,
+                QgsMarkerSymbol, QgsLineSymbol,
             )
 
             crs_wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
@@ -1946,7 +1908,7 @@ class GeoFixerDialog(QDialog):
                         feat = self._current_layer.getFeature(fid)
                         try:
                             rx, ry = feat[lon_f], feat[lat_f]
-                            if rx is None or ry is None:
+                            if _is_null(rx) or _is_null(ry):
                                 err_bad_value += 1; continue
                             x, y = float(str(rx).replace(',', '.')), float(str(ry).replace(',', '.'))
                             if x != x or y != y:   # NaN
@@ -1970,7 +1932,7 @@ class GeoFixerDialog(QDialog):
                         feat = self._current_layer.getFeature(fid)
                         try:
                             raw = feat[wkt_f]
-                            if raw is None or str(raw).strip() == "":
+                            if _is_null(raw) or not str(raw).strip():
                                 err_bad_value += 1; continue
                             g = QgsGeometry.fromWkt(str(raw).strip())
                             if g is None or g.isNull():
@@ -2021,10 +1983,15 @@ class GeoFixerDialog(QDialog):
                     self._apply_btn.setEnabled(False)
 
             # ── Build the result layer (green) — skipped if no valid geom ──
-            wkb_type = preview_geoms[0].wkbType() if preview_geoms else None
-            geom_enum = QgsWkbTypes.geometryType(wkb_type) if wkb_type is not None else None
-            mem_type  = {0: "Point", 1: "LineString", 2: "Polygon"}.get(
-                int(geom_enum), "Point") if geom_enum is not None else "Point"
+            if preview_geoms:
+                try:
+                    mem_type = {0: "Point", 1: "LineString", 2: "Polygon"}.get(
+                        int(preview_geoms[0].type()), "Point"
+                    )
+                except Exception:
+                    mem_type = "Point"
+            else:
+                mem_type = "Point"
 
             self._preview_layers_s2 = []
 
@@ -2376,6 +2343,7 @@ class GeoFixerDialog(QDialog):
         # Hide the preview canvas: it shows the pre-correction state and would
         # be misleading after corrections have been applied.
         self._hide_preview_canvas()
+        self._recompute_no_geom_cache()
         self._populate_entity_table()
 
     def _set_result(self, text: str, color: str) -> None:
@@ -2386,6 +2354,23 @@ class GeoFixerDialog(QDialog):
     # ======================================================================
     # Utilitaires
     # ======================================================================
+
+    def _recompute_no_geom_cache(self) -> None:
+        """Scan the current layer (up to 50 000 features) and cache the no-geometry count."""
+        self._n_no_geom_cache = 0
+        if self._current_layer is None:
+            return
+        try:
+            n_checked = 0
+            for feat in self._current_layer.getFeatures():
+                g = feat.geometry()
+                if g is None or g.isNull() or g.isEmpty():
+                    self._n_no_geom_cache += 1
+                n_checked += 1
+                if n_checked > 50_000:
+                    break
+        except Exception:
+            self._n_no_geom_cache = 0
 
     def _get_s1_crs(self):
         try:
